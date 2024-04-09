@@ -306,6 +306,7 @@ abstract class AbstractJdbcDestination<DestinationState : MinimumDestinationStat
             typerDeduper,
             getDataTransformer(parsedCatalog, defaultNamespace),
             optimalBatchSizeBytes,
+            parsedCatalog,
         )
     }
 
@@ -434,7 +435,7 @@ abstract class AbstractJdbcDestination<DestinationState : MinimumDestinationStat
                     if (attemptInsert) {
                         sqlOps.insertRecords(
                             database,
-                            java.util.List.of(dummyRecord),
+                            listOf(dummyRecord),
                             outputSchema,
                             outputTableName,
                         )

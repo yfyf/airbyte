@@ -25,6 +25,7 @@ import java.util.*
 import java.util.concurrent.Callable
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import java.util.function.Consumer
 import java.util.function.Function
 import java.util.stream.Collectors
@@ -191,8 +192,8 @@ abstract class BaseTypingDedupingTest {
     @Throws(Exception::class)
     fun setup() {
         config = generateConfig()
-        streamNamespace = "typing_deduping_test" + uniqueSuffix
-        streamName = "test_stream" + uniqueSuffix
+        streamNamespace = "tdtest_$uniqueSuffix"
+        streamName = "test_$uniqueSuffix"
         streamsToTearDown = ArrayList()
 
         val generator = sqlGenerator
@@ -414,6 +415,8 @@ abstract class BaseTypingDedupingTest {
      */
     @Test
     @Throws(Exception::class)
+    // This test writes a lot of data to the destination and can take longer than a minute.
+    @Timeout(value = 5, unit = TimeUnit.MINUTES)
     fun largeDedupSync() {
         val catalog =
             io.airbyte.protocol.models.v0
@@ -710,6 +713,8 @@ abstract class BaseTypingDedupingTest {
      * stdout.
      */
     @Test
+    // This test writes a lot of data to the destination and can take longer than a minute.
+    @Timeout(value = 5, unit = TimeUnit.MINUTES)
     @Throws(Exception::class)
     open fun identicalNameSimultaneousSync() {
         val namespace1 = streamNamespace + "_1"
@@ -764,35 +769,45 @@ abstract class BaseTypingDedupingTest {
         // Write some messages to both syncs. Write a lot of data to sync 2 to try and force a
         // flush.
         pushMessages(messages1, sync1)
-        for (i in 0..100000 - 1) {
+        val nTimes = 100000
+        for (i in 0..<nTimes) {
             pushMessages(messages2, sync2)
         }
         endSync(sync1, outFuture1)
         // Write some more messages to the second sync. It should not be affected by the first
         // sync's
         // shutdown.
-        for (i in 0..100000 - 1) {
+        for (i in 0..<nTimes) {
             pushMessages(messages2, sync2)
         }
         endSync(sync2, outFuture2)
 
-        // For simplicity, don't verify the raw table. Assume that if the final table is correct,
-        // then
-        // the raw data is correct. This is generally a safe assumption.
+        // For simplicity, just assert on raw record count.
+        // Seems safe to assume that if we have the right number of records on both tables,
+        // that we wrote the data correctly.
+        val rawRecords1 = dumpRawTableRecords(namespace1, streamName)
+        val rawRecords2 = dumpRawTableRecords(namespace2, streamName)
         Assertions.assertAll(
-            Executable {
-                DIFFER!!.diffFinalTableRecords(
-                    readRecords("dat/sync1_expectedrecords_dedup_final.jsonl"),
-                    dumpFinalTableRecords(namespace1, streamName)
-                )
-            },
-            Executable {
-                DIFFER!!.diffFinalTableRecords(
-                    readRecords("dat/sync1_expectedrecords_dedup_final2.jsonl"),
-                    dumpFinalTableRecords(namespace2, streamName)
-                )
-            }
+            Executable { Assertions.assertEquals(messages1.size.toLong(), rawRecords1.size.toLong()) },
+            Executable { Assertions.assertEquals(2 * nTimes * messages2.size.toLong(), rawRecords2.size.toLong()) },
         )
+
+        if (!disableFinalTableComparison()) {
+            Assertions.assertAll(
+                Executable {
+                    DIFFER!!.diffFinalTableRecords(
+                        readRecords("dat/sync1_expectedrecords_dedup_final.jsonl"),
+                        dumpFinalTableRecords(namespace1, streamName)
+                    )
+                },
+                Executable {
+                    DIFFER!!.diffFinalTableRecords(
+                        readRecords("dat/sync1_expectedrecords_dedup_final2.jsonl"),
+                        dumpFinalTableRecords(namespace2, streamName)
+                    )
+                }
+            )
+        }
     }
 
     @Test

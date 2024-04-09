@@ -475,9 +475,9 @@ abstract class JdbcDestinationHandler<DestinationState>(
      * @param airbyteType
      * @return
      */
-    protected abstract fun toJdbcTypeName(airbyteType: AirbyteType?): String
+    protected abstract fun toJdbcTypeName(airbyteType: AirbyteType): String
 
-    protected abstract fun toDestinationState(json: JsonNode?): DestinationState
+    protected abstract fun toDestinationState(json: JsonNode): DestinationState
 
     companion object {
         private val LOGGER: Logger = LoggerFactory.getLogger(JdbcDestinationHandler::class.java)
