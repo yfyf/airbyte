@@ -98,6 +98,7 @@ constructor(
                 }
             )
         }
+        LOGGER.info("Running sync with stream configs: $streamConfigs")
         return ParsedCatalog(streamConfigs)
     }
 

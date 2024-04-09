@@ -44,7 +44,7 @@ abstract class JdbcSqlGeneratorIntegrationTest<DestinationState : MinimumDestina
     protected abstract val sqlDialect: SQLDialect?
         get
 
-    private val dslContext: DSLContext
+    val dslContext: DSLContext
         get() = DSL.using(sqlDialect)
 
     /**

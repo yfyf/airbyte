@@ -1462,7 +1462,7 @@ abstract class BaseSqlGeneratorIntegrationTest<DestinationState : MinimumDestina
             AirbyteProtocolType.STRING
         )
         val v1RawTableStreamId =
-            StreamId(null, null, streamId.finalNamespace, "v1_" + streamId.rawName, null, null)
+            StreamId("fake", "fake", streamId.finalNamespace, "v1_" + streamId.rawName, "fake", "fake")
         createV1RawTable(v1RawTableStreamId)
         insertV1RawTableRecords(
             v1RawTableStreamId,
@@ -1624,7 +1624,7 @@ abstract class BaseSqlGeneratorIntegrationTest<DestinationState : MinimumDestina
         // Commit a state belonging to a different stream
         destinationHandler.commitDestinationStates(
             java.util.Map.of(
-                StreamId(null, null, null, null, null, "some_other_stream"),
+                StreamId("fake", "fake", "fake", "fake", "fake", "some_other_stream"),
                 initialState.destinationState.withSoftReset(true)
             )
         )
