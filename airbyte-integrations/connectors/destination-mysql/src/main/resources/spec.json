@@ -58,6 +58,12 @@
         "title": "JDBC URL Params",
         "type": "string",
         "order": 6
+      },
+      "raw_table_database": {
+        "type": "string",
+        "description": "The database to write raw tables into",
+        "title": "Raw table database (defaults to airbyte_internal)",
+        "order": 7
       }
     }
   }
