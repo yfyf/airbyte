@@ -4,6 +4,12 @@
 
 package io.airbyte.integrations.destination.mysql;
 
+import static io.airbyte.cdk.integrations.base.JavaBaseConstants.COLUMN_NAME_AB_EXTRACTED_AT;
+import static io.airbyte.cdk.integrations.base.JavaBaseConstants.COLUMN_NAME_AB_LOADED_AT;
+import static io.airbyte.cdk.integrations.base.JavaBaseConstants.COLUMN_NAME_AB_META;
+import static io.airbyte.cdk.integrations.base.JavaBaseConstants.COLUMN_NAME_AB_RAW_ID;
+import static io.airbyte.cdk.integrations.base.JavaBaseConstants.COLUMN_NAME_DATA;
+
 import edu.umd.cs.findbugs.annotations.SuppressFBWarnings;
 import io.airbyte.cdk.db.jdbc.JdbcDatabase;
 import io.airbyte.cdk.integrations.base.JavaBaseConstants;
@@ -56,7 +62,8 @@ public class MySQLSqlOperations extends JdbcSqlOperations {
                                          final String schemaName,
                                          final String tableName)
       throws Exception {
-    throw new UnsupportedOperationException("mysql does not yet support DV2");
+    // TODO ... how does this actually work?
+    insertRecordsInternal(database, records, schemaName, tableName);
   }
 
   private void loadDataIntoTable(final JdbcDatabase database,
@@ -129,7 +136,7 @@ public class MySQLSqlOperations extends JdbcSqlOperations {
   }
 
   @Override
-  public String createTableQuery(final JdbcDatabase database, final String schemaName, final String tableName) {
+  protected String createTableQueryV1(String schemaName, String tableName) {
     // MySQL requires byte information with VARCHAR. Since we are using uuid as value for the column,
     // 256 is enough
     return String.format(
@@ -139,6 +146,28 @@ public class MySQLSqlOperations extends JdbcSqlOperations {
             + "%s TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6)\n"
             + ");\n",
         schemaName, tableName, JavaBaseConstants.COLUMN_NAME_AB_ID, JavaBaseConstants.COLUMN_NAME_DATA, JavaBaseConstants.COLUMN_NAME_EMITTED_AT);
+  }
+
+  protected String createTableQueryV2(String schemaName, String tableName) {
+    // MySQL requires byte information with VARCHAR. Since we are using uuid as value for the column,
+    // 256 is enough
+    return String.format(
+        """
+            CREATE TABLE IF NOT EXISTS %s.%s (\s
+            %s VARCHAR(256) PRIMARY KEY,
+            %s JSON,
+            %s TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6),
+            %s TIMESTAMP(6) DEFAULT CURRENT_TIMESTAMP(6),
+            %s JSON
+            );
+            """,
+        schemaName,
+        tableName,
+        JavaBaseConstants.COLUMN_NAME_AB_RAW_ID,
+        JavaBaseConstants.COLUMN_NAME_DATA,
+        JavaBaseConstants.COLUMN_NAME_AB_EXTRACTED_AT,
+        JavaBaseConstants.COLUMN_NAME_AB_LOADED_AT,
+        JavaBaseConstants.COLUMN_NAME_AB_META);
   }
 
   public static class VersionCompatibility {
